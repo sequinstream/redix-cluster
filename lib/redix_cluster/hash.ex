@@ -1,7 +1,7 @@
 defmodule RedixCluster.Hash do
   @moduledoc false
 
-  @redis_cluster_hash_slots 5461
+  @redis_cluster_hash_slots 16384
 
   ## CRCBench
   # benchmark name   iterations   average time
