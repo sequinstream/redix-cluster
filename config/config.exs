@@ -1,6 +1,6 @@
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
-use Mix.Config
+import Config
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
@@ -128,14 +128,15 @@ use Mix.Config
 #     sentinels.
 
 config :redix_cluster,
-  cluster_nodes: [%{host: "127.0.0.1", port: 7000},
-                  %{host: "127.0.0.1", port: 7001},
-                  %{host: "127.0.0.1", port: 7002}
-                 ],
+  cluster_nodes: [
+    %{host: "127.0.0.1", port: 7000},
+    %{host: "127.0.0.1", port: 7001},
+    %{host: "127.0.0.1", port: 7002}
+  ],
   pool_size: 5,
   pool_max_overflow: 0,
 
-# connection_opts
+  # connection_opts
   socket_opts: [],
   backoff_initial: 2000,
   backoff_max: 2000
@@ -156,4 +157,4 @@ config :redix_cluster,
 # Configuration from the imported file will override the ones defined
 # here (which is why it is important to import them last).
 #
- import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
