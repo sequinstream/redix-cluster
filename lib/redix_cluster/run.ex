@@ -47,9 +47,77 @@ defmodule RedixCluster.Run do
     {:ok, "OK"}
   end
 
-  defp parse_key_from_command([term1, term2 | rest]), do: verify_command_key(term1, term2, rest)
-  defp parse_key_from_command([term]), do: verify_command_key(term, "")
-  defp parse_key_from_command(_), do: {:error, :invalid_cluster_command}
+  defp parse_key_from_command([["MULTI" | _] | rest]), do: parse_key_from_command(rest)
+
+  defp parse_key_from_command([[cmd | args] | rest]) when is_binary(cmd),
+    do: parse_key_from_command([cmd | args])
+
+  defp parse_key_from_command([cmd | args]) when is_binary(cmd) do
+    case String.downcase(cmd) do
+      # Commands that don't need cluster keys - we'll let them pass through
+      cmd when cmd in ["info", "config", "shutdown", "slaveof"] ->
+        nil
+
+      # Commands that use the second argument as key
+      "bitop" ->
+        Enum.at(args, 1)
+
+      "object" ->
+        Enum.at(args, 1)
+
+      "xgroup" ->
+        Enum.at(args, 1)
+
+      "xinfo" ->
+        Enum.at(args, 1)
+
+      "zdiff" ->
+        Enum.at(args, 1)
+
+      "zinter" ->
+        Enum.at(args, 1)
+
+      "zunion" ->
+        Enum.at(args, 1)
+
+      # Commands that use the third argument as key
+      cmd when cmd in ["eval", "evalsha"] ->
+        Enum.at(args, 2)
+
+      # Commands with special handling
+      "xread" ->
+        find_arg_after_keyword("streams", args)
+
+      "xreadgroup" ->
+        find_arg_after_keyword("streams", args)
+
+      "memory" ->
+        handle_memory_command(args)
+
+      # Default case - use first argument as key
+      _ ->
+        args |> List.first() |> to_string()
+    end
+  end
+
+  defp parse_key_from_command(_), do: nil
+
+  # Helper functions for special cases
+  defp find_arg_after_keyword(keyword, args) do
+    case Enum.find_index(args, &(String.downcase(to_string(&1)) == keyword)) do
+      nil -> nil
+      idx -> Enum.at(args, idx + 1)
+    end
+  end
+
+  defp handle_memory_command([subcmd | args]) do
+    case String.downcase(to_string(subcmd)) do
+      "usage" -> List.first(args)
+      _ -> nil
+    end
+  end
+
+  defp handle_memory_command(_), do: nil
 
   defp parse_keys_from_pipeline(pipeline) do
     case get_command_keys(pipeline) do
